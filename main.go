@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ISADBA/fee/fee"
@@ -9,14 +8,15 @@ import (
 
 func main() {
 	r := fee.New()
-	r.GET("/", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, "URL.Path = %q\n", req.URL.Path)
+	r.GET("/", func(c *fee.Context) {
+		c.HTML(http.StatusOK, "<h1>Hello Fee</h1>")
 	})
 
-	r.GET("/hello", func(w http.ResponseWriter, req *http.Request) {
-		for k, v := range req.Header {
-			fmt.Fprintf(w, "Header[%q] = %q\n", k, v)
-		}
+	r.GET("/hello", func(c *fee.Context) {
+		c.JSON(http.StatusOK, fee.H{
+			"username": c.PostForm("username"),
+			"password": c.PostForm("password"),
+		})
 	})
 
 	r.Run(":9999")
