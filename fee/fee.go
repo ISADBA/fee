@@ -2,6 +2,7 @@ package fee
 
 import (
 	"net/http"
+	"strings"
 )
 
 // 定义HandlerFunc类型,限制用户使用GET和POST等需要传入的参数类型
@@ -58,6 +59,11 @@ func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
 	group.addRoute("POST", pattern, handler)
 }
 
+// 添加Use方法
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, middlewares...)
+}
+
 // 添加Run方法，启动web服务器
 func (engine *Engine) Run(addr string) (err error) {
 	return http.ListenAndServe(addr, engine)
@@ -65,6 +71,13 @@ func (engine *Engine) Run(addr string) (err error) {
 
 // 给Engine添加ServeHTTP方法,实现http.Handler接口,否则http.ListenAndServe不能传入engine
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	var middlewares []HandlerFunc
+	for _, group := range engine.groups {
+		if strings.HasPrefix(req.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
 	c := newContext(w, req)
+	c.handlers = middlewares
 	engine.router.handle(c)
 }

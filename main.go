@@ -1,14 +1,25 @@
 package main
 
 import (
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/ISADBA/fee/fee"
 )
 
-// 实现路由组管理
+// 申明一个对v2使用的中间件
+func logForv2() fee.HandlerFunc {
+	return func(c *fee.Context) {
+		t := time.Now()
+		log.Printf("[%d] %s in %v for group v2", c.StatusCode, c.Req.RequestURI, time.Since(t))
+	}
+}
+
+// 实现中间件能力,开发一个日志中间件
 func main() {
 	r := fee.New()
+	r.Use(fee.Logger()) // 添加全局中间件
 	v1 := r.Group("/v1")
 
 	v1.GET("/", func(c *fee.Context) {
@@ -27,6 +38,14 @@ func main() {
 			"welcome": c.Path,
 		})
 	})
+
+	v2 := r.Group("/v2")
+	v2.Use(logForv2())
+	{
+		v2.GET("/:name/ping", func(c *fee.Context) {
+			c.String(http.StatusOK, "Pong %s, %s\n", c.Param("name"), c.Path)
+		})
+	}
 
 	r.Run(":9999")
 }
